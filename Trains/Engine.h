@@ -3,17 +3,21 @@
 
 #include <SFML\Graphics.hpp>
 #include <Windows.h>
+#include "Utility.h"
 #include "Railroad.h"
 
-#define WINDOWSIZEX 1920
-#define WINDOWSIZEY 1080
+#define WINDOWSIZEX 1024
+#define WINDOWSIZEY 768
+#define MOUSESELECTDISTANCE 20.0f
 
 class Engine
 {
 private:
 	enum class State { Draw = 0, Edit = 1 };
+	enum class DrawMode { Rails = 0, Stops = 1 };
 
 	State state = State::Draw;
+	DrawMode drawMode = DrawMode::Rails;
 
 	sf::RenderWindow* _window;
 

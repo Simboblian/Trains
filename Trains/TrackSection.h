@@ -11,20 +11,23 @@ class TrackSection
 {
 private:
 	std::vector<Point*> _controlPoints;
-	std::vector<sf::VertexArray> _controlLines;
-	sf::VertexArray _line;
+	sf::VertexArray _viewable;
+	sf::Color _colour;
 	bool _selected = false;
 
 	Point CreateControl(sf::Vector2f Position);
 
 	void CalculateLine();
-
 public:
 	void Select() { _selected = true; };
 	void Deselect() { _selected = false; };
 	bool isSelected() { return _selected; };
 
-	void MovePoint(sf::Vector2f oldPos, sf::Vector2f currentPos);
+	std::vector<sf::Vector2f> GetVertexPoints();
+	sf::FloatRect GetBounds() { return _viewable.getBounds(); };
+
+	void SetColour(sf::Color Colour);
+
 	void Draw(sf::RenderWindow& Window);
 	void Update();
 

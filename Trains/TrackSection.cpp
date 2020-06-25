@@ -7,7 +7,7 @@ Point TrackSection::CreateControl(sf::Vector2f Position)
 
 void TrackSection::CalculateLine()
 {
-	_line = sf::VertexArray(sf::PrimitiveType::LineStrip);
+	_viewable = sf::VertexArray(sf::PrimitiveType::LineStrip);
 
 	for (int i = 0; i < RESOLUTION; i++)
 	{
@@ -24,48 +24,70 @@ void TrackSection::CalculateLine()
 			+ 3 * (1 - t) * pow(t, 2) * _controlPoints[3]->GetPosition().y
 			+ pow(t, 3) * _controlPoints[1]->GetPosition().y;
 
-		_line.append(sf::Vertex(*new sf::Vector2f(point), sf::Color::Cyan));
+		_viewable.append(sf::Vertex(point, _colour));
 	}
 
-	_line.append(sf::Vertex(*new sf::Vector2f(_controlPoints[1]->GetPosition()), sf::Color::Cyan));
+	_viewable.append(sf::Vertex(sf::Vector2f(_controlPoints[1]->GetPosition()), _colour));
 }
 
-void TrackSection::MovePoint(sf::Vector2f oldPos, sf::Vector2f currentPos)
+std::vector<sf::Vector2f> TrackSection::GetVertexPoints()
 {
-	for (int i = 0; i < _controlPoints.size(); i++)
+	std::vector<sf::Vector2f> values = std::vector<sf::Vector2f>();
+
+	for (int i = 0; i < _viewable.getVertexCount(); i++)
 	{
-		if (_controlPoints[i]->isSelected())
-		{
-			sf::Vector2f diff = sf::Vector2f((currentPos.x - oldPos.x), (currentPos.y - oldPos.y));
+		values.push_back(_viewable[i].position);
+	}
 
-			sf::Vector2f newPos = sf::Vector2f(_controlPoints[i]->GetPosition().x + diff.x, _controlPoints[i]->GetPosition().y + diff.y);
-			
-			_controlPoints[i]->SetPosition(newPos);
+	return values;
+}
 
-			CalculateLine();
-		}
+void TrackSection::SetColour(sf::Color Colour)
+{
+	for (int i = 0; i < _viewable.getVertexCount(); i++)
+	{
+		_viewable[i].color = Colour;
 	}
 }
 
 void TrackSection::Draw(sf::RenderWindow& Window)
 {
-	if (_line.getVertexCount() > 0)
-		Window.draw(_line);
+	if (_viewable.getVertexCount() > 0)
+		Window.draw(_viewable);
 }
 
 void TrackSection::Update()
 {
+	if (isSelected())
+		_colour = sf::Color::Green;
+	else
+		_colour = sf::Color::Cyan;
+
 	CalculateLine();
 }
 
 TrackSection::TrackSection(TrackPoint &tPointA, TrackPoint &tPointB)
 {
 	_selected = false;
+	_colour = sf::Color::Cyan;
 
 	Point* pointA = &tPointA;
 	Point* pointB = &tPointB;
-	Point* pointC = &tPointA.GetControlPoints()[1];
-	Point* pointD = &tPointB.GetControlPoints()[0];
+	Point* pointC = new Point();
+	Point* pointD = new Point();
+
+	if(Utility::GetDistance(tPointA.GetControlPoints().back()->GetPosition(), tPointB.GetPosition())
+		< Utility::GetDistance(tPointA.GetControlPoints().front()->GetPosition(), tPointB.GetPosition()))
+		pointC = tPointA.GetControlPoints().back();
+	else
+		pointC = tPointA.GetControlPoints().front();
+
+
+	if (Utility::GetDistance(tPointB.GetControlPoints().back()->GetPosition(), tPointA.GetPosition())
+		< Utility::GetDistance(tPointB.GetControlPoints().front()->GetPosition(), tPointA.GetPosition()))
+		pointD = tPointB.GetControlPoints().back();
+	else
+		pointD = tPointB.GetControlPoints().front();
 
 	_controlPoints.push_back(pointA);
 	_controlPoints.push_back(pointB);

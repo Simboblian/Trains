@@ -48,6 +48,9 @@
     <ClCompile Include="TrackSection.cpp">
       <Filter>Source Files\Railroads</Filter>
     </ClCompile>
+    <ClCompile Include="Line.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine.h">
@@ -70,6 +73,9 @@
     </ClInclude>
     <ClInclude Include="TrackSection.h">
       <Filter>Header Files\Railroads</Filter>
+    </ClInclude>
+    <ClInclude Include="Line.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
