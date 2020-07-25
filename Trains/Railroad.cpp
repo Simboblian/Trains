@@ -1,59 +1,184 @@
 #include "Railroad.h"
 
-void Railroad::AddPoint(sf::Vector2f Position, TrackPoint* PreviousPoint, TrackPoint* NextPoint)
+void Railroad::AddPoint(Mouse& CurrentMouse)
 {
-	DeselectAll();
-	TrackPoint* p = new TrackPoint(Position);
-	if (NextPoint != nullptr)
+	if (_points.size() == 0)
 	{
-		NextPoint->Select();
+		AddPointAtPos(CurrentMouse.GetPosition());
+		return;
+	}
 
-		if (PreviousPoint != nullptr)
+	TrackPoint* originalPoint = nullptr;
+	if (CurrentMouse.GetSelection().size() == 1)
+	{
+		if (CurrentMouse.GetLastSelected()->GetType() == Type::TRACKPOINT)
 		{
-			if (_points.size() > 1)
+			originalPoint = (TrackPoint*)CurrentMouse.GetLastSelected();
+		}
+
+		if (CurrentMouse.GetLastSelected()->GetType() == Type::CONTROLPOINT)
+		{
+			for (int i = 0; i < _points.size(); i++)
 			{
-				TrackSection* s = new TrackSection(*PreviousPoint, *NextPoint);
-				_sections.push_back(s);
+				for (int j = 0; j < _points[i]->GetControlPoints().size(); j++)
+				{
+					if (_points[i]->GetControlPoints()[j] == (ControlPoint*)CurrentMouse.GetLastSelected())
+						originalPoint = _points[i];
+				}
 			}
 		}
+
+		if (Utility::GetDistance(SelectClosestTrackPoint(CurrentMouse.GetPosition())->GetPosition(), CurrentMouse.GetPosition()) < CurrentMouse.GetSelectRadius())
+		{
+			if (SelectClosestTrackPoint(CurrentMouse.GetPosition()) != CurrentMouse.GetLastSelected())
+			{
+				ConnectTwoPoints(originalPoint, SelectClosestTrackPoint(CurrentMouse.GetPosition()));
+					return;
+			}
+		}
+
+		AddPointAtPos(CurrentMouse.GetPosition());
+		ConnectTwoPoints(originalPoint, _points.back());
 	}
 	else
 	{
-		p->Select();
-		_points.push_back(p);
-
-		if (PreviousPoint != nullptr)
-		{
-			if (_points.size() > 1)
-			{
-				TrackSection* s = new TrackSection(*PreviousPoint, *_points[_points.size() - 1]);
-				_sections.push_back(s);
-			}
-		}
+		AddPointAtPos(CurrentMouse.GetPosition());
 	}
 }
 
-bool Railroad::AddLine(Point& NewPoint)
+void Railroad::AddPointAtPos(sf::Vector2f Position)
 {
-	//if (_lines.size() == 0)
-	//	_lines.push_back(new Line());
-	//else if (_lines.back()->GetPoints().size() == 2)
-	//	_lines.push_back(new Line());
-
-	//if(_lines.back()->GetPoints().size() == 0)
-	//	_lines.back()->AddPoint(NewPoint);
-	//else if (_lines.back()->GetPoints().size() < 2)
-	//	if(&NewPoint != _lines.back()->GetPoints().back())
-	//		_lines.back()->AddPoint(NewPoint);
-
-	//if (_lines.back()->GetPoints().size() == 2)
-	//	return true;
-	return false;
+	TrackPoint* p = new TrackPoint(Position);
+	_points.push_back(p);
 }
 
-void Railroad::ColourLine(sf::Color Colour)
+void Railroad::ConnectTwoPoints(TrackPoint* PointOne, TrackPoint* PointTwo)
 {
-	//_lines.back()->SetColour(Colour);
+	if (!PointOne->isConnected())
+	{
+		PointOne->Rotate(Utility::CalculateAngle(PointOne->GetPosition(), PointTwo->GetPosition()));
+		PointOne->SetConnection(true);
+	}
+	if (!PointTwo->isConnected())
+	{
+		PointTwo->Rotate(Utility::CalculateAngle(PointTwo->GetPosition(), PointOne->GetPosition()));
+		PointTwo->SetConnection(true);
+	}
+
+	TrackSection* s = new TrackSection(*PointOne, *PointTwo);
+	_sections.push_back(s);
+}
+
+void Railroad::StraightenLine(TrackPoint* PointOne, TrackPoint* PointTwo)
+{
+	if (Utility::GetDistance(PointOne->GetControlPoints().front()->GetPosition(), PointTwo->GetPosition()) < Utility::GetDistance(PointOne->GetControlPoints().back()->GetPosition(), PointTwo->GetPosition()))
+		PointOne->Rotate(Utility::CalculateAngle(PointOne->GetPosition(), PointTwo->GetPosition()));
+	else
+		PointOne->Rotate(Utility::CalculateAngle(PointOne->GetPosition(), PointTwo->GetPosition()) + PI);
+
+	if (Utility::GetDistance(PointTwo->GetControlPoints().front()->GetPosition(), PointOne->GetPosition()) < Utility::GetDistance(PointTwo->GetControlPoints().back()->GetPosition(), PointOne->GetPosition()))
+		PointTwo->Rotate(Utility::CalculateAngle(PointTwo->GetPosition(), PointOne->GetPosition()));
+	else
+		PointTwo->Rotate(Utility::CalculateAngle(PointTwo->GetPosition(), PointOne->GetPosition()) + PI);
+}
+
+void Railroad::CreateStation(TrackPoint* PointOne, TrackPoint* PointTwo)
+{
+	for (int i = 0; i < _sections.size(); i++)
+	{
+		bool matchA = false;
+		bool matchB = false;
+
+		for (int j = 0; j < _sections[i]->GetControlPoints().size(); j++)
+		{
+			if (PointOne == _sections[i]->GetControlPoints()[j])
+				matchA = true;
+			if (PointTwo == _sections[i]->GetControlPoints()[j])
+				matchB = true;
+		}
+
+		if (matchA && matchB)
+		{
+			_sections[i]->~TrackSection();
+			_sections.erase(_sections.begin() + i);
+		}
+	}
+
+	//not a fan of all this below
+
+	PointOne->SetConnection(false);
+	PointTwo->SetConnection(false);
+
+	StraightenLine(PointOne, PointTwo);
+
+	PointOne->Update();
+	PointTwo->Update();
+
+	PointOne->StopRotation();
+	PointTwo->StopRotation();
+
+	PointOne->SetConnection(true);
+	PointTwo->SetConnection(true);
+
+	_sections.push_back(new Station(*PointOne, *PointTwo));
+}
+
+void Railroad::Rotate(float Angle)
+{
+	for (int i = 0; i < _points.size(); i++)
+	{
+		_points[i]->Rotate(Angle);
+	}
+}
+
+void Railroad::DeleteFromMouse(Mouse& CurrentMouse)
+{
+	for (int i = 0; i < CurrentMouse.GetSelection().size(); i++)
+	{
+		bool deleted = false;
+		bool iterate = false;
+
+		for (int j = 0; j < _points.size(); j++)
+		{
+			if (CurrentMouse.GetSelection()[i] == _points[j])
+			{
+				for (int k = 0; k < _sections.size(); iterate ? k++ : k)
+				{
+					iterate = true;
+					for (int l = 0; l < _sections[k]->GetControlPoints().size(); l++)
+					{
+						if (_sections[k]->GetControlPoints()[l] == _points[j])
+						{
+							_sections[k]->~TrackSection();
+							_sections.erase(_sections.begin() + k);
+							iterate = false;
+							k = 0;
+							l = 0;
+							break;
+						}
+					}
+				}
+				_points[j]->~TrackPoint();
+				_points.erase(_points.begin() + j);
+				deleted = true;
+			}
+		}
+
+		if (!deleted)
+		{
+			for (int j = 0; j < _sections.size(); j++)
+			{
+				if (CurrentMouse.GetSelection()[i] == _sections[j])
+				{
+					_sections[j]->~TrackSection();
+					_sections.erase(_sections.begin() + j);
+					deleted = true;
+				}
+			}
+		}
+	}
+
+	CurrentMouse.DeselectAll();
 }
 
 void Railroad::DeselectAllPoints()
@@ -77,11 +202,11 @@ void Railroad::DeselectAllTracks()
 	}
 }
 
-void Railroad::Draw(sf::RenderWindow& Window, bool Edit)
+void Railroad::Draw(sf::RenderWindow& Window)
 {
 	for (int i = 0; i < _points.size(); i++)
 	{
-		_points[i]->Draw(Window, Edit);
+		_points[i]->Draw(Window);
 	}
 
 	for (int i = 0; i < _sections.size(); i++)
@@ -142,7 +267,6 @@ TrackPoint* Railroad::GetSelectedTrackPoint()
 	{
 		if (_points[i]->isSelected())
 		{
-			selected = true;
 			value = _points[i];
 			break;
 		}
@@ -162,13 +286,15 @@ TrackPoint* Railroad::SelectClosestTrackPoint(sf::Vector2f Position)
 	TrackPoint* value = _points[0];
 	for (int i = 0; i < _points.size(); i++)
 	{
-		if (Utility::GetDistance(Position, _points[i]->GetPosition()) < Utility::GetDistance(Position, value->GetPosition()))
+		if (_points[i]->isVisible())
 		{
-			value = _points[i];
+			if (Utility::GetDistance(Position, _points[i]->GetPosition()) < Utility::GetDistance(Position, value->GetPosition()))
+			{
+				value = _points[i];
+			}
 		}
 	}
 
-	value->Select();
 	return value;
 }
 
@@ -192,12 +318,13 @@ Point* Railroad::SelectClosestPoint(sf::Vector2f Position)
 	Point* value = pointList[0];
 	for (int i = 0; i < pointList.size(); i++)
 	{
-		pointList[i]->Deselect();
-		if (Utility::GetDistance(Position, pointList[i]->GetPosition()) < Utility::GetDistance(Position, value->GetPosition()))
-			value = pointList[i];
+		if (pointList[i]->isVisible())
+		{
+			if (Utility::GetDistance(Position, pointList[i]->GetPosition()) < Utility::GetDistance(Position, value->GetPosition()))
+				value = pointList[i];
+		}
 	}
 	pointList.clear();
-	value->Select();
 	return value;
 }
 
@@ -219,7 +346,6 @@ TrackSection* Railroad::SelectClosestTrack(sf::Vector2f Position)
 		}
 	}
 
-	value->Select();
 	return value;
 }
 

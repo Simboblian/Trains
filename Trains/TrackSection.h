@@ -3,25 +3,21 @@
 
 #include <SFML/Graphics.hpp>
 #include "TrackPoint.h"
+#include "GameEntity.h"
 
 #define RESOLUTION 32
 
 //possibly keep track of the angle (tightness) of the curve so that it doesn't become impassable.
-class TrackSection
+class TrackSection : public GameEntity
 {
-private:
+protected:
 	std::vector<Point*> _controlPoints;
 	sf::VertexArray _viewable;
 	sf::Color _colour;
-	bool _selected = false;
-
-	Point CreateControl(sf::Vector2f Position);
 
 	void CalculateLine();
 public:
-	void Select() { _selected = true; };
-	void Deselect() { _selected = false; };
-	bool isSelected() { return _selected; };
+	std::vector<Point*> GetControlPoints() { return _controlPoints; };
 
 	std::vector<sf::Vector2f> GetVertexPoints();
 	sf::FloatRect GetBounds() { return _viewable.getBounds(); };

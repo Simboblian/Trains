@@ -3,6 +3,8 @@
 
 #include <SFML/Graphics.hpp>
 
+#define PI 3.14159265359f
+
 static class Utility
 {
 public:
@@ -20,16 +22,16 @@ public:
 
 	static float CalculateAngle(sf::Vector2f PosA, sf::Vector2f PosB)
 	{
-		return atan2((PosB.y - PosA.y) , (PosB.x - PosA.x));
-	}
+		return atan2((PosB.y - PosA.y), (PosB.x - PosA.x));
+	};
 
-	static bool PointInBounds(sf::FloatRect b, sf::Vector2f p)
+	static bool PointInBounds(sf::Vector2f p, sf::FloatRect b)
 	{
 		if ((p.x >= b.left) && (p.x <= b.left + b.width))
 			if ((p.y >= b.top) && (p.y <= b.top + b.height))
 				return true;
 		return false;
-	}
+	};
 };
 
 #endif

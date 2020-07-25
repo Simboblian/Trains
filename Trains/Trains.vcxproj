@@ -128,7 +128,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>./lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>sfml-audio.lib;sfml-system.lib;sfml-main.lib;sfml-window.lib;sfml-graphics.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>sfml-audio.lib;sfml-system.lib;sfml-main.lib;sfml-window.lib;sfml-graphics.lib;tgui.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -153,7 +153,10 @@
   <ItemGroup>
     <ClCompile Include="ControlPoint.cpp" />
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="GameEntity.cpp" />
     <ClCompile Include="Line.cpp" />
+    <ClCompile Include="Mouse.cpp" />
+    <ClCompile Include="Station.cpp" />
     <ClCompile Include="TrackPoint.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Point.cpp" />
@@ -163,7 +166,10 @@
   <ItemGroup>
     <ClInclude Include="ControlPoint.h" />
     <ClInclude Include="Engine.h" />
+    <ClInclude Include="GameEntity.h" />
     <ClInclude Include="Line.h" />
+    <ClInclude Include="Mouse.h" />
+    <ClInclude Include="Station.h" />
     <ClInclude Include="TrackPoint.h" />
     <ClInclude Include="Point.h" />
     <ClInclude Include="Railroad.h" />

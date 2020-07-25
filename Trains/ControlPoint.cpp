@@ -1,9 +1,19 @@
 #include "ControlPoint.h"
 #include <iostream>
 
+void ControlPoint::SetRotationAroundPoint(float Angle, sf::Vector2f Point)
+{
+	float magnitude = Utility::GetMagnitude(sf::Vector2f(_position.x - Point.x, _position.y - Point.y));
+
+	sf::Vector2f newPos = sf::Vector2f(magnitude * cos(Angle), magnitude * sin(Angle));
+
+	_position.x = Point.x + newPos.x;
+	_position.y = Point.y + newPos.y;
+}
+
 float ControlPoint::GetRotationAroundPoint(sf::Vector2f Origin)
 {
-	float value = Utility::CalculateAngle(Origin, _viewable.getPosition()); //_position isn't used here because we need to get the change in rotation
+	float value = Utility::CalculateAngle(Origin, _viewable.getPosition());
 	return value;
 }
 
@@ -22,6 +32,8 @@ void ControlPoint::RotateAroundPoint(float Rotation, sf::Vector2f Origin)
 
 ControlPoint::ControlPoint(sf::Vector2f Position)
 {
+	ObjectType = Type::CONTROLPOINT;
+
 	_position = Position;
 	_viewable.setRadius(3);
 	_viewable.setFillColor(sf::Color::White);
@@ -34,6 +46,8 @@ ControlPoint::ControlPoint(sf::Vector2f Position)
 
 ControlPoint::ControlPoint()
 {
+	ObjectType = Type::CONTROLPOINT;
+
 	_position = sf::Vector2f(0, 0);
 	_viewable.setRadius(3);
 	_viewable.setFillColor(sf::Color::White);

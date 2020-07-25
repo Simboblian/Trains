@@ -5,6 +5,7 @@
 #include <Windows.h>
 #include "Utility.h"
 #include "Railroad.h"
+#include "Mouse.h"
 
 #define WINDOWSIZEX 1024
 #define WINDOWSIZEY 768
@@ -21,11 +22,11 @@ private:
 
 	sf::RenderWindow* _window;
 
+	Mouse _mouse;
+
 	sf::Vector2f pointA, pointB;
 	sf::Vector2f oldMousePos, curMousePos;
-	Railroad rails;
-
-	bool grab;
+	Railroad _rails;
 
 	bool Init();
 	void MainLoop();

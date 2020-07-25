@@ -4,16 +4,15 @@ bool Engine::Init()
 {
 	srand(time(NULL));
 
-	_window = new sf::RenderWindow(sf::VideoMode(WINDOWSIZEX, WINDOWSIZEY), "Trains");
-	pointA = sf::Vector2f(WINDOWSIZEX / 3, WINDOWSIZEY / 2);
-	pointB = sf::Vector2f(WINDOWSIZEX / 3 * 2, WINDOWSIZEY / 2);
-	rails = Railroad();
-	grab = false;
+	_window = new sf::RenderWindow(sf::VideoMode(WINDOWSIZEX, WINDOWSIZEY), "Trains", 7U, sf::ContextSettings(0, 0, 8));
+	_window->setFramerateLimit(60);
+	_rails = Railroad();
+	_mouse = Mouse();
+
+	;
 
 	if (!_window)
 		return false;
-
-	oldMousePos = curMousePos = sf::Vector2f(0, 0);
 
 	return true;
 }
@@ -33,164 +32,130 @@ void Engine::MainLoop()
 void Engine::ProcessInput()
 {
 	sf::Event evt;
-	curMousePos = _window->mapPixelToCoords(sf::Mouse::getPosition(*_window));
-	sf::Vector2f mouseDif = sf::Vector2f(curMousePos.x - oldMousePos.x, curMousePos.y - oldMousePos.y);
 
-	TrackPoint* p1 = new TrackPoint();
-	TrackPoint* p2 = new TrackPoint();
+	_mouse.ProcessInput(*_window);
 
 	while (_window->pollEvent(evt))
 	{
-		if (evt.type == sf::Event::Closed || sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+		if (evt.type == sf::Event::Closed)
 			_window->close();
-		
-		switch (state)
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+			_mouse.DeselectAll();
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Delete))
+			_rails.DeleteFromMouse(_mouse);
+
+		if (_mouse.GetSelection().size() == 2)
 		{
-		case State::Draw:
-			_window->setTitle("DRAW");
-			if (evt.type == sf::Event::KeyPressed && sf::Keyboard::isKeyPressed(sf::Keyboard::Tab))
-			{
-				state = State::Edit;
-				rails.DeselectAll();
-			}
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+				_rails.StraightenLine((TrackPoint*)_mouse.GetSelection().front(), (TrackPoint*)_mouse.GetSelection().back());
 
-			if (evt.type == sf::Event::KeyPressed && sf::Keyboard::isKeyPressed(sf::Keyboard::Num1))
-			{
-				_window->setTitle("RAILS");
-				drawMode = DrawMode::Rails;
-			}
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::C))
+				_rails.ConnectTwoPoints((TrackPoint*)_mouse.GetSelection().front(), (TrackPoint*)_mouse.GetSelection().back());
 
-			if (evt.type == sf::Event::KeyPressed && sf::Keyboard::isKeyPressed(sf::Keyboard::Num2))
-			{
-				_window->setTitle("STOPS");
-				drawMode = DrawMode::Stops;
-			}
-
-			if (evt.type == sf::Event::KeyPressed && sf::Keyboard::isKeyPressed(sf::Keyboard::Z))
-			{
-				if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
-					if(rails.GetSectionCount() > 0)
-						rails.DeleteLastSection();
-			}
-
-			if (evt.type == sf::Event::MouseButtonPressed && sf::Mouse::isButtonPressed(sf::Mouse::Left))
-			{
-				switch (drawMode)
-				{
-				case DrawMode::Rails:
-					if (rails.GetPointCount() > 0)
-					{
-						if (Utility::GetDistance(rails.SelectClosestPoint(curMousePos)->GetPosition(), curMousePos) > MOUSESELECTDISTANCE)
-						{
-							rails.DeselectAllPoints();
-						}
-					}
-					break;
-				case DrawMode::Stops:
-					if (rails.AddLine(*rails.SelectClosestPoint(curMousePos)))
-					{
-						rails.ColourLine(sf::Color::Magenta);
-					}
-					break;
-				default:
-					break;
-				}
-			}
-
-			if (evt.type == sf::Event::MouseButtonPressed && sf::Mouse::isButtonPressed(sf::Mouse::Right))
-			{
-				switch (drawMode)
-				{
-				case DrawMode::Rails:
-					if (rails.GetPointCount() > 0)
-					{
-						p1 = rails.GetSelectedTrackPoint();
-						if (Utility::GetDistance(rails.SelectClosestTrackPoint(curMousePos)->GetPosition(), curMousePos) > MOUSESELECTDISTANCE)
-							p2 = nullptr;
-						else
-							p2 = rails.SelectClosestTrackPoint(curMousePos);
-
-						rails.AddPoint(curMousePos, p1, p2);
-					}
-					else
-						rails.AddPoint(curMousePos);
-					break;
-				case DrawMode::Stops:
-					if (rails.AddLine(*rails.SelectClosestPoint(curMousePos)))
-					{
-						rails.ColourLine(sf::Color::Magenta);
-					}
-					break;
-				default:
-					break;
-				}
-			}
-			break;
-		case State::Edit:
-			_window->setTitle("EDIT");
-
-			if (evt.type == sf::Event::KeyPressed && sf::Keyboard::isKeyPressed(sf::Keyboard::Tab))
-			{
-				state = State::Draw;
-				rails.DeselectAll();
-			}
-
-			if (evt.type == sf::Event::MouseButtonPressed && sf::Mouse::isButtonPressed(sf::Mouse::Left))
-			{
-				rails.DeselectAllTracks();
-				rails.DeselectAllPoints();
-				if (Utility::GetDistance(rails.SelectClosestPoint(curMousePos)->GetPosition(), curMousePos) > MOUSESELECTDISTANCE)
-				{
-					if (!Utility::PointInBounds(rails.SelectClosestTrack(curMousePos)->GetBounds(), curMousePos))
-						rails.DeselectAllTracks();
-					else
-						rails.DeselectAllPoints();
-				}
-			}
-
-			if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
-			{
-				rails.GetSelectedPoint()->Move(mouseDif);
-			}
-			break;
-		default:
-			break;
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+				_rails.CreateStation((TrackPoint*)_mouse.GetSelection().front(), (TrackPoint*)_mouse.GetSelection().back());
 		}
 	}
 
-	oldMousePos = curMousePos;
 }
 
 void Engine::Update()
 {
-	switch (state)
+	_mouse.Update();
+
+	if (_mouse.isLeftDown())
 	{
-	case State::Draw:
-		rails.Update();
-		break;
-	case State::Edit:
-		rails.Update();
-		break;
-	default:
-		break;
+		if (_mouse.isLeftClicked())
+		{
+			if (_rails.GetPointCount() > 0)
+			{
+				if (Utility::GetDistance(_rails.SelectClosestPoint(_mouse.GetPosition())->GetPosition(), _mouse.GetPosition()) < _mouse.GetSelectRadius())
+				{
+					if (_mouse.GetSelection().size() == 0)
+					{
+						_mouse.SelectPoint(_rails.SelectClosestPoint(_mouse.GetPosition()), sf::Keyboard::isKeyPressed(sf::Keyboard::LShift));
+					}
+					else
+					{
+						if (_mouse.GetLastSelected()->GetType() == Type::CONTROLPOINT || _rails.SelectClosestPoint(_mouse.GetPosition())->GetType() == Type::CONTROLPOINT)
+							_mouse.SelectPoint(_rails.SelectClosestPoint(_mouse.GetPosition()), false);
+						else
+							_mouse.SelectPoint(_rails.SelectClosestPoint(_mouse.GetPosition()), sf::Keyboard::isKeyPressed(sf::Keyboard::LShift));
+					}
+
+					_mouse.SetDragging(true);
+				}
+				else
+				{
+					_mouse.DeselectAll();
+					_mouse.SetSelecting(true);
+				}
+			}
+		}
+
+		if (_mouse.GetLastSelected() != nullptr && (_mouse.GetDragging() && !_mouse.GetSelecting()))
+		{
+			for (int i = 0; i < _mouse.GetSelection().size(); i++)
+			{
+				if (_mouse.GetLastSelected()->GetType() == Type::CONTROLPOINT && sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
+				{
+					for (int j = 0; j < _rails.GetPointCount(); j++)
+					{
+						for (int k = 0; k < _rails.GetPointAtIndex(j)->GetControlPoints().size(); k++)
+						{
+							if (_mouse.GetLastSelected() == _rails.GetPointAtIndex(j)->GetControlPoints()[k])
+							{
+								ControlPoint* p = (ControlPoint*)_mouse.GetLastSelected();
+								float rotation = p->GetRotationAroundPoint(_rails.GetPointAtIndex(j)->GetPosition());
+								p->Move(_mouse.GetMouseMovement());
+								p->SetRotationAroundPoint(rotation, _rails.GetPointAtIndex(j)->GetPosition());
+							}
+						}
+					}
+				}
+				else
+				{
+					_mouse.GetSelection()[i]->Move(_mouse.GetMouseMovement());
+				}
+			}
+		}
 	}
+
+	if (_mouse.isLeftReleased())
+	{
+		if (_mouse.GetSelecting())
+		{
+			for (int i = 0; i < _rails.GetPointCount(); i++)
+			{
+				if (Utility::PointInBounds(_rails.GetPointAtIndex(i)->GetPosition(), _mouse.GetSelectionRect()))
+					_mouse.AddToSelection(_rails.GetPointAtIndex(i));
+			}
+		}
+
+		_mouse.SetDragging(false);
+		_mouse.SetSelecting(false);
+	}
+
+	if (_mouse.isRightDown())
+	{
+		if (_mouse.isRightClicked())
+		{
+			_rails.AddPoint(_mouse);
+		}
+	}
+
+	_rails.Update();
 }
 
 void Engine::RenderFrame()
 {
 	_window->clear(sf::Color::Black);
 
-	switch (state)
-	{
-	case State::Draw:
-		rails.Draw(*_window, false);
-		break;
-	case State::Edit:
-		rails.Draw(*_window, true);
-		break;
-	default:
-		break;
-	}
+	_rails.Draw(*_window);
+	_mouse.Draw(*_window);
+
 	_window->display();
 }
 
@@ -204,6 +169,7 @@ void Engine::Go()
 
 Engine::Engine()
 {
+	_window = new sf::RenderWindow();
 }
 
 Engine::~Engine()

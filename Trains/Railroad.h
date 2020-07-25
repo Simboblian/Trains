@@ -4,27 +4,37 @@
 #include "Line.h"
 #include "TrackPoint.h"
 #include "TrackSection.h"
+#include "Station.h"
+#include "Mouse.h"
 
 class Railroad
 {
 private:
 	std::vector<TrackPoint*> _points;
 	std::vector<TrackSection*> _sections;
-	//std::vector<Line*> _lines;
+	std::vector<Station*> _stations;
+
+	void AddPointAtPos(sf::Vector2f Position);
 public:
-	void AddPoint(sf::Vector2f Position, TrackPoint* PreviousPoint = nullptr, TrackPoint* NextPoint = nullptr);
-	bool AddLine(Point& NewPoint);
+	void AddPoint(Mouse &CurrentMouse);
+	void ConnectTwoPoints(TrackPoint* PointOne = nullptr, TrackPoint* PointTwo = nullptr);
+	void StraightenLine(TrackPoint* PointOne, TrackPoint* PointTwo);
+	void CreateStation(TrackPoint* PointOne, TrackPoint* PointTwo);
+
+	void Rotate(float Angle);
 	
 	void DeleteLastSection() { _sections.back()->~TrackSection(); _sections.pop_back(); };
-	void ColourLine(sf::Color Colour);
+	void DeleteFromMouse(Mouse& CurrentMouse);
+
 	void DeselectAllPoints();
 	void DeselectAllTracks();
 	void DeselectAll() { DeselectAllPoints(); DeselectAllTracks(); };
 
-	void Draw(sf::RenderWindow& Window, bool Edit);
+	void Draw(sf::RenderWindow& Window);
 	void Update();
 
 	int GetPointCount() { return _points.size(); };
+	TrackPoint* GetPointAtIndex(int index) { return index < _points.size() ?  _points[index] : nullptr; }
 	int GetSectionCount() { return _sections.size(); };
 
 	Point* GetSelectedPoint();

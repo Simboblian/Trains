@@ -9,6 +9,7 @@
 class ControlPoint : public Point
 {
 public:
+	void SetRotationAroundPoint(float Angle, sf::Vector2f Point);
 	float GetRotationAroundPoint(sf::Vector2f Origin);
 	void RotateAroundPoint(float Rotation, sf::Vector2f Origin);
 

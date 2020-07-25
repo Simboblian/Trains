@@ -1,10 +1,5 @@
 #include "TrackSection.h"
 
-Point TrackSection::CreateControl(sf::Vector2f Position)
-{
-	return Point(Position);
-}
-
 void TrackSection::CalculateLine()
 {
 	_viewable = sf::VertexArray(sf::PrimitiveType::LineStrip);
@@ -63,11 +58,17 @@ void TrackSection::Update()
 	else
 		_colour = sf::Color::Cyan;
 
-	CalculateLine();
+	for (int i = 0; i < _controlPoints.size(); i++)
+	{
+		if (_controlPoints[i]->GetPosition() != _controlPoints[i]->GetPreviousPosition())
+			CalculateLine();
+	}
 }
 
 TrackSection::TrackSection(TrackPoint &tPointA, TrackPoint &tPointB)
 {
+	ObjectType = Type::TRACKSECTION;
+
 	_selected = false;
 	_colour = sf::Color::Cyan;
 
@@ -99,6 +100,7 @@ TrackSection::TrackSection(TrackPoint &tPointA, TrackPoint &tPointB)
 
 TrackSection::TrackSection()
 {
+	ObjectType = Type::TRACKSECTION;
 }
 
 TrackSection::~TrackSection()
